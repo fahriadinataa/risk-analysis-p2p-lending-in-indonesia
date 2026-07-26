@@ -98,7 +98,17 @@ Seiring bertambahnya basis lender perorangan, penyelenggara maupun regulator per
 
 ## 7. Project Structure
 
+
 ## 8. Dashboard Preview
+**Overview Industri**
+<img width="1300" height="730" alt="Screenshot 2026-07-26 180720" src="https://github.com/user-attachments/assets/fa5f7b2f-886a-4a45-80dd-a13fdd682cfa" />
+
+**Analisis Lender**
+<img width="1301" height="728" alt="Screenshot 2026-07-26 180830" src="https://github.com/user-attachments/assets/b6dd00c5-0adf-434a-8796-81dcac0f2637" />
+
+**Analisis Loan**
+<img width="1200" height="673" alt="Screenshot 2026-07-26 183109" src="https://github.com/user-attachments/assets/044f781f-b32c-4787-b7bd-ea175e204839" />
 
 ## 9. Limitation
+Beberapa keterbatasan data perlu diperhatikan dalam membaca analisis ini: breakdown TWP90 tidak tersedia pada level sektor ekonomi maupun UMKM/Non-UMKM, sehingga analisis pada kedua dimensi tersebut terbatas pada growth dan komposisi. Selain itu, ditemukan anomali pelaporan pada periode Juli hingga September 2024 pada beberapa metrik jumlah entitas, yang kemungkinan besar terkait dengan revisi data resmi OJK untuk periode Juni 2024 sebagaimana tercatat pada catatan kaki dataset. Detail lengkap tersedia pada dokumentasi data quality di repository ini.
 Beberapa keterbatasan data perlu diperhatikan dalam membaca analisis ini: breakdown TWP90 tidak tersedia pada level sektor ekonomi maupun UMKM/Non-UMKM, sehingga analisis pada kedua dimensi tersebut terbatas pada growth dan komposisi. Selain itu, ditemukan anomali pelaporan pada periode Juli hingga September 2024 pada beberapa metrik jumlah entitas, yang kemungkinan besar terkait dengan revisi data resmi OJK untuk periode Juni 2024 sebagaimana tercatat pada catatan kaki dataset. Detail lengkap tersedia pada dokumentasi data quality di repository ini.
