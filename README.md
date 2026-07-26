@@ -1,120 +1,98 @@
-# Risk Analysis p2p Lending 
-**Uncovering Growth vs Risk p2p Lending**
+# Risiko yang Tersembunyi di Balik Angka TWP90 2,6% 
+**Membedah Konsentrasi Risiko Kredit pada Industri Fintech P2P Lending (LPBBTI) Indonesia**
 
 **[Click here to download the full Power BI Dashboard](https://drive.google.com/file/d/1FyJgFf3Awvx4gQL-2DZ8jfTRZvM0Lnvw/view?usp=drive_link)**
 
-## 1. The Problem Statement
+## 1. Problem Statement
 
-Olist’s business exploded in the early period, achieving **700% YoY growth** in January 2018 compared to January 2017.  
+Per Desember 2024, industri Layanan Pendanaan Bersama Berbasis Teknologi Informasi (LPBBTI) atau yang lebih dikenal sebagai fintech P2P lending mencatatkan TWP90 (Tingkat Wanprestasi 90 hari) nasional sebesar 2,6%, angka yang terlihat sehat dan berada dalam batas wajar.
 
-However, within less than a year, growth slowed dramatically to only **50%** (August 2018 vs August 2017).  
+Namun, angka agregat ini menyembunyikan sesuatu.
 
-Although revenue continued to rise, nearly all of that growth came from new customers.  
-**Only 2.2% of customers ever made a repeat purchase.**  
+Ketika dipecah berdasarkan kategori peminjam, **TWP90 pada segmen Badan Usaha ternyata mencapai lebih dari 9%, hampir 4 kali lipat dari rata-rata nasional**, dan portofolionya justru menyusut dari waktu ke waktu.
 
-Why?
+Kenapa rata-rata nasional bisa begitu jauh berbeda dari kondisi riil di level segmen? 
 
 ## 2. Dataset Overview
 
-- **Source** : Kaggle - Olist Brazilian E-Commerce  
-- **Analysis Period** : September 2016 – August 2018 
-- **Note** : September and October 2018 data were excluded due to negligible volume and not representative for analysis.                      
-- **Scope** : Brazilian marketplace orders  
-- **Data Model** : Star Schema (1 Fact Table + 5 Dimension Tables)
+- **Sumber** : OJK - Statistik LPBBTI, Otoritas Jasa Keuangan (OJK) — Desember 2024  
+- **Periode Analisis** : Desember 2023 – Desember 2024                     
+- **Cakupan** : 97 penyelenggara fintech lending berizin OJK (90 konvensional, 7 syariah) 
+- **Data Model** : Star Schema (8 Fact Table + 6 Dimension Table)
 
 ## 3. Objectives & Business Questions
 
-- How is the overall business performance of Olist E-Commerce?  
-- What is the customer retention rate?  
-- Do delivery performance and seller performance influence customer churn?
+- Bagaimana kesehatan finansial industri LPBBTI secara keseluruhan?
+- Segmen peminjam mana yang menunjukkan pertumbuhan sehat, dan mana yang berisiko?
+- Apakah risiko kredit tersebar merata secara geografis, atau terkonsentrasi di wilayah tertentu?
+- Siapa yang paling menanggung dampak apabila risiko kredit ini terwujud menjadi gagal bayar?
 
 ## 4. Methodology
 
-### Data Modeling
-The original Olist dataset consisted of 3 fact tables (orders, order payments, order items) and 4 dimension tables (customers, sellers, products, order reviews).  
+### Data Cleaning and Restructuring
+Data mentah OJK berbentuk laporan (bukan format siap analisis) — kolom bulan tersebar horizontal (wide format), header bertingkat, dan subtotal region yang menyatu dengan data granular. Proses pembersihan dilakukan melalui Power Query, mencakup:
 
-For this analysis, I consolidated them into **1 Fact Table** (`new_fact_order`) and **5 Dimension Tables** (customers, sellers, products, order reviews, and date range). This transformation was done to create a clean star schema, making it much easier to join tables and perform analysis.
+- Unpivot 26 kolom bulanan menjadi struktur long format
+- Pemisahan section header dari baris detail menggunakan conditional column dan fill down
+- Eliminasi baris subtotal/grand total yang dapat dihitung ulang, sekaligus mempertahankan baris yang secara struktural tampak seperti subtotal namun sebenarnya merupakan data mandiri (contoh: kategori "Luar Negeri" pada data lokasi)
+- Pemisahan dimensi independen (Gender dan Kelompok Umur) menjadi fact table terpisah, mengingat kombinasi keduanya tidak pernah muncul dalam data sumber
 
-### New Fact Table
-I merged the orders, order payments, and order items tables into a single fact table. This new table combines all relevant keys into one place and includes only the columns needed for analysis. The result is a cleaner, more organized dataset that is easier to understand and query.
+### Penanganan Data Akumulatif (Year-to-Date)
+Temuan penting dalam tahap eksplorasi: data Laba Rugi OJK bersifat kumulatif sejak Januari dan mengalami reset setiap awal tahun. Jika langsung dianalisis tanpa penyesuaian, data ini akan selalu menunjukkan tren "naik terus" — bukan mencerminkan performa bisnis aktual, melainkan sekadar efek akumulasi. Seluruh metrik turunan dari Laba Rugi (termasuk ROA dan ROE) diproses ulang menggunakan window function di MySQL untuk memperoleh nilai bulanan murni.
 
-### Customer Retention Segmentation
-Customers were divided into three segments:  
-- **Churn Customer** : Made only one purchase, and that purchase occurred more than 5 months before the end of the analysis period.  
-- **Repeat Customer** : Made more than one purchase during the entire analysis period.  
-- **One-time Customer** : Made only one purchase within the last 5 months of the analysis period.  
-
-The 5-month threshold was determined from cohort analysis, which showed that customers typically make their next purchase around 5 months after the previous one.
+### Growth-vs-Risk Framework
+Inti dari analisis ini adalah mengidentifikasi kombinasi pertumbuhan tinggi dengan risiko tinggi pada tiga dimensi: lokasi, kategori peminjam, dan demografi. Setiap segmen diklasifikasikan ke dalam empat kuadran berdasarkan growth outstanding dan TWP90, menggunakan nilai rata-rata industri sebagai garis pembagi.
 
 ### Tools
-- **MySQL** : Used for data understanding, cleaning, preparation, and exploratory data analysis.  
-- **Power BI** : Used to build interactive dashboards for presenting the analysis results.
-
+- **Power Query** : Transformasi struktur data mentah dari format laporan menjadi format analisis (unpivot, split, star schema).
+- **MySQL** : Pembersihan data lanjutan, penghitungan de-akumulasi, growth rate (MoM/YoY), dan klasifikasi kuadran risiko menggunakan window function.  
+- **Power BI** : Visualisasi interaktif serta perhitungan growth YoY dan proyeksi tren.
+  
 ## 5. Key Findings
 
 **Finding 1**  
-Olist experienced strong growth in the early period, which gradually slowed over time. YoY GMV growth ranged from **50% to 700%**. Overall, 97% of orders were successfully delivered, with only about 1.2% of orders failed.
+Kesehatan makro industri membaik, namun ada sinyal di penghujung tahun
+Total Aset tumbuh 22,6% YoY dan Laba Bersih melonjak 245,2% YoY. Struktur permodalan juga menguat secara konsisten sepanjang tahun — DER turun dari 1,03 ke 0,80, sementara Current Ratio naik dari 1,56 ke 2,25. Meski TWP90 nasional turun 11,1% secara tahunan, terdapat kenaikan 3,5% pada bulan terakhir yang menjadi sinyal awal dari temuan berikutnya.
 
 **Finding 2**  
-Growth was driven almost entirely by new customers rather than retention.  
-Customer composition: **65.8% churn customers**, **32.0% one-time customers**, and only **2.2% repeat customers**.  
-The business is highly dependent on acquiring new buyers, which increases the risk of rising Customer Acquisition Cost (CAC) in the future.
+Dua portofolio yang bergerak berlawanan arah
+Segmen Perseorangan menunjukkan pola sehat: outstanding tumbuh dan porsi bermasalah stagnan. Sebaliknya, segmen Badan Usaha menunjukkan portofolio yang mengecil sekaligus porsi macetnya membesar — kombinasi yang jauh lebih mengkhawatirkan dibanding sekadar TWP90 tinggi, karena mengindikasikan penyelenggara sudah mulai menahan penyaluran baru sementara portofolio lama belum tertangani.
 
 **Finding 3**  
-Delivery performance and product category had only a moderate impact on churn and were not the main drivers.
-Churn customers experienced an average lead time of 13.84 days (19% longer than repeat customers) and a 49.8% higher late order rate. However, the top 5 product categories purchased by churn and repeat customers were almost identical, and review scores were also very similar. This indicates churn was not primarily driven by product type or one-time purchase intent.
+Risiko juga terkonsentrasi pada demografi tertentu
+TWP90 meningkat seiring bertambahnya usia peminjam, dengan kelompok usia di atas 54 tahun menunjukkan pola yang serupa dengan segmen Badan Usaha: jumlah rekening menurun namun outstanding dan TWP90 justru meningkat.
 
 **Finding 4**  
-The most critical finding is that underperforming sellers represent 95% of the total seller base and contribute the vast majority of GMV and Even top-performing sellers struggled with delivery delays. Sellers with high review scores and large order volumes still had a late delivery rate of up to **11.3%**, worse than some lower-performing sellers. The platform needs strict, consistent SLA standards that apply to all sellers without exception. 
+Risiko lokasi berkorelasi dengan kematangan pasar, bukan sekadar tinggi-rendah
+Provinsi dengan penetrasi fintech lending yang masih baru menunjukkan growth tinggi dengan TWP90 rendah, kemungkinan besar karena portofolio yang belum cukup umur untuk menunjukkan risiko sesungguhnya. Sebaliknya, provinsi dengan pasar yang sudah mapan justru menunjukkan TWP90 lebih tinggi meski pertumbuhannya melambat — mencerminkan risiko yang lebih matang dan lebih dapat diandalkan untuk dianalisis.
 
 **Finding 5**  
-Churn is likely driven by external factors.  
-After ruling out delivery performance, review scores, and product category as primary causes, the main reason appears to be the **absence of retention strategies** such as loyalty programs and personalized recommendations.
+Basis pendanaan bertumpu pada institusi, namun eksposur ritel terus meluas
+Institusi menguasai 92% dari total outstanding lender, dengan Bank Umum sebagai kontributor tunggal terbesar (58%). Meski demikian, jumlah rekening lender perorangan terus bertumbuh dari waktu ke waktu — mengindikasikan bahwa dampak risiko kredit, jika terwujud, akan semakin menyentuh masyarakat umum, bukan hanya institusi keuangan.
 
 ## 6. Business Recommendations
 
-### Retention & Customer Strategy
-**Re-engagement Campaign Based on Customer Lifecycle**  
-With an average repeat purchase occurring at 4.82 months, re-engagement campaigns should be triggered in the fourth month after the last purchase, before customers enter the churn zone. Waiting until the fifth month is already too late.
+### Untuk Penyelenggara
+**Evaluasi kriteria underwriting segmen Badan Usaha**  
+Evaluasi kriteria underwriting segmen Badan Usaha
+Mengingat pola portofolio yang mengecil sekaligus memburuk, diperlukan audit terhadap kriteria credit scoring pada segmen ini, disertai penguatan strategi collection untuk portofolio yang sudah berjalan sebelum semakin banyak yang jatuh ke kategori macet penuh.
 
-**Priority Targeting by RFM Segment**  
-- Cannot Lose Them (16.6%) : High-frequency customers with low recency.
-  Offer exclusive vouchers or early access to new products to re-ignite their loyalty.
-- Hibernating (24.6%) : The largest at-risk segment.
-  Use urgency-driven campaigns such as limited-time offers and flash sales.
-- Potential Loyalist (18.7%) : Customers with 1–2 purchases but still good recency.
-  Focus on relevant cross-selling within the same product category rather than generic recommendations.
-- New Customers (13%) : Customers who have just made a purchase
-  Provide post-purchase nurturing through follow-up emails, satisfaction surveys, and limited-time discounts to encourage a second purchase.
+**Perhatian khusus pada segmen usia di atas 54 tahun**  
+Mengingat pola risikonya menyerupai segmen Badan Usaha, perlu investigasi lanjutan untuk memahami karakteristik peminjam pada kelompok ini secara lebih mendalam.
 
-**Loyalty Program Aligned with Payment Behavior**  
-Since 74.75% of customers use credit cards as their primary payment method, the most effective loyalty program for this group is cashback or reward points per transaction. This approach feels familiar to credit card users and has a higher chance of influencing repeat behavior.
+### Untuk Regulator
+**Perkuat monitoring TWP90 pada level segmen, bukan hanya agregat nasional**  
+Rata-rata nasional yang terlihat sehat dapat menyembunyikan konsentrasi risiko yang signifikan. Pelaporan wajib TWP90 berdasarkan kategori peminjam, sebagaimana yang sudah diterapkan untuk lokasi, akan memperkuat sistem deteksi dini.
 
-### Seller Management
-**Implement Platform-Wide SLA Standards**  
-A uniform Service Level Agreement (SLA) for delivery must be enforced across all seller segments without exception. High-volume Top Sellers with elevated late delivery rates pose a greater absolute risk than lower-volume Risky Sellers due to their large order contribution. Stricter SLA thresholds should be applied to sellers with more than 500 orders. 
+**Pantau progresif provinsi dengan portofolio yang masih muda**   
+TWP90 rendah pada provinsi berkembang berpotensi bersifat sementara. Diperlukan ambang batas pemantauan yang disesuaikan dengan usia penetrasi pasar, bukan disamakan dengan provinsi yang sudah mapan.
 
-**Tiered Warning System for Risky Sellers**   
-Introduce a three-stage monitoring system:  
-- Yellow Flag : Late rate > 7% in the last 30 days: Send warning notification.
-- Orange Flag : Late rate > 9% in the last 30 days: Temporarily lower seller ranking on the platform.
-- Red Flag : Late rate > 12% in the last 60 days: Initiate contract review.
+### Untuk Investor dan Lender
+**Diversifikasi basis pendanaan institusi**  
+Dominasi Bank Umum sebesar 58% dari total outstanding lender menciptakan risiko konsentrasi pada sisi pendanaan. Diversifikasi ke IKNB, dana pensiun, dan koperasi akan memperkuat ketahanan struktur pendanaan industri.
 
-**Seller Development Program for Underperformers**  
-The most critical finding is that underperforming sellers represent 95% of the total seller base and contribute the vast majority of GMV. Prioritize the following:
-Identify the top 50–100 underperforming sellers with the highest order volume and review scores close to 4.0 — these are the strongest candidates to become “Potential Sellers.”
-Provide targeted onboarding, fulfillment training, and performance coaching for this group, as improving them will have significantly higher impact on overall GMV than focusing solely on the 19 existing Top Sellers.
-
-### Operational and Delivery
-**Eliminate Severe Late Deliveries (10+ days)**  
-Severe late deliveries (10+ days) are 27 times higher among churn customers (1,775 cases) compared to repeat customers (64 cases). Focus investigation and intervention efforts specifically on these high-impact cases rather than minor delays.  
-Action Steps:
-- Analyze patterns to determine whether severe delays are concentrated by specific sellers, states, or product categories.
-- If concentrated in certain states, increase local seller supply in those regions.
-- If concentrated among specific sellers, escalate them into the warning system above.- Strengthen seller supply in states with the highest number of customers to reduce lead time.
-
-**Strategic Seller Expansion Beyond São Paulo (SP)**  
-While SP dominates with over 40,000 customers, other key states (RJ, MG, RS, and PR) also have significant customer bases. Orders shipped across states are likely contributing to longer lead times. Recruiting and onboarding local sellers in these four states will directly reduce delivery distance and improve overall lead time performance.
+**Transparansi risiko bagi lender ritel**  
+Seiring bertambahnya basis lender perorangan, penyelenggara maupun regulator perlu memastikan lender individu memahami profil risiko segmen yang mereka danai, bukan semata tergiur imbal hasil.
 
 *All recommendations are designed to improve customer retention so the business is less dependent on constantly acquiring new buyers.*
 
