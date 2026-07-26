@@ -1,1 +1,64 @@
+-- Jumlah Entitas Lender Dalam Negeri vs Luar Negeri
+SELECT DISTINCT
+	Region,
+    Kategori,
+    COUNT(Region) AS Total_Entitas
+FROM dim_lender_category
+GROUP BY Region, Kategori
+;
 
+-- Komposisi Lender Dalam Negeri vs Luar Negeri
+SELECT
+    Region,
+    SUM(`Jumlah Rekening Pemberi Pinjaman (entitas)`) AS Total_Rekening,
+    SUM(`Outstanding Pinjaman (miliar Rp)`) AS Total_Outstanding,
+    ROUND(
+        SUM(`Outstanding Pinjaman (miliar Rp)`) / SUM(SUM(`Outstanding Pinjaman (miliar Rp)`)) OVER ()
+    , 4) AS Kontribusi_Outstanding
+FROM fact_lender_outstanding
+WHERE periode = '2024-12-01 00:00:00'
+GROUP BY Region
+ORDER BY Kontribusi_Outstanding DESC
+;
+
+-- Komposisi Lender Institusi vs Perorangan
+SELECT
+    CASE WHEN Kategori = 'Perorangan' THEN 'Perorangan' ELSE 'Institusi' END AS Kelompok,
+    SUM(`Jumlah Rekening Pemberi Pinjaman (entitas)`) AS Total_Rekening,
+    SUM(`Outstanding Pinjaman (miliar Rp)`) AS Total_Outstanding,
+    ROUND(
+        SUM(`Outstanding Pinjaman (miliar Rp)`) / SUM(SUM(`Outstanding Pinjaman (miliar Rp)`)) OVER ()
+    , 4) AS Kontribusi_Outstanding
+FROM fact_lender_outstanding
+WHERE periode = '2024-12-01 00:00:00'
+GROUP BY Kelompok
+ORDER BY Kontribusi_Outstanding DESC
+;
+
+-- Komposisi Lender per Kategori dan Sub Kategori
+SELECT
+    Region,
+    Kategori,
+    Sub_Kategori,
+    `Jumlah Rekening Pemberi Pinjaman (entitas)` AS Total_Rekening,
+    `Outstanding Pinjaman (miliar Rp)` AS Total_Outstanding,
+    ROUND(
+        `Outstanding Pinjaman (miliar Rp)` / SUM(`Outstanding Pinjaman (miliar Rp)`) OVER ()
+    , 4) AS Kontribusi_Outstanding
+FROM fact_lender_outstanding
+WHERE periode = '2024-12-01 00:00:00'
+ORDER BY Region, Periode
+;
+
+-- Perbandingan Outstanding Institusi vs Perorangan by Periode
+SELECT
+    Periode,
+    CASE WHEN Kategori = 'Perorangan' THEN 'Perorangan' ELSE 'Institusi' END AS Kelompok,
+    SUM(`Jumlah Rekening Pemberi Pinjaman (entitas)`) AS Total_Rekening,
+    SUM(`Outstanding Pinjaman (miliar Rp)`) AS Total_Outstanding,
+    ROUND(SUM(`Outstanding Pinjaman (miliar Rp)`) / 
+		SUM(SUM(`Outstanding Pinjaman (miliar Rp)`)) OVER(PARTITION BY Periode), 2) AS Kontribusi_Outstanding
+FROM fact_lender_outstanding
+GROUP BY Periode, Kelompok
+ORDER BY Periode, Kelompok
+;
