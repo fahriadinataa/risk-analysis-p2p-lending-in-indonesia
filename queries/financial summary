@@ -1,0 +1,62 @@
+-- Made actual value in net income
+DROP TABLE IF EXISTS financial_actual;
+
+CREATE TABLE fact_financial_actual
+SELECT 
+periode,
+`Jumlah Aset` AS Jumlah_Aset,
+`Jumlah Aset Lancar` AS Aset_Lancar,
+`Kas dan Setara Kas` AS Kas_SetaraKas,
+`Jumlah Aset Tidak Lancar` AS Aset_Tidak_Lancar,
+`Jumlah Liabilitas` AS Jumlah_Liabilitas,
+`Jumlah Liabilitas Jangka Pendek` AS Liabilitas_Jangka_Pendek,
+`Jumlah Liabilitas Jangka Panjang` AS Liabilitas_Jangka_Panjang,
+`Jumlah Ekuitas` AS Jumlah_Ekuitas,
+CASE WHEN MONTH(periode) = 1 THEN `Jumlah Pendapatan Operasional`
+	ELSE `Jumlah Pendapatan Operasional` - LAG(`Jumlah Pendapatan Operasional`) OVER(ORDER BY periode)
+	END AS Jumlah_Pendapatan_Operasional,
+CASE WHEN MONTH(periode) = 1 THEN `Jumlah Beban Operasional`
+	ELSE `Jumlah Beban Operasional` - LAG(`Jumlah Beban Operasional`) OVER(ORDER BY periode)
+	END AS Jumlah_Beban_Operasional,
+CASE WHEN MONTH(periode) = 1 THEN `Laba (Rugi) Operasional`
+	ELSE `Laba (Rugi) Operasional` - LAG(`Laba (Rugi) Operasional`) OVER(ORDER BY periode)
+	END AS LabaRugi_Operasional,
+CASE WHEN MONTH(periode) = 1 THEN `Jumlah Pendapatan Non Operasional`
+	ELSE `Jumlah Pendapatan Non Operasional` - LAG(`Jumlah Pendapatan Non Operasional`) OVER(ORDER BY periode)
+	END AS Jumlah_Pendapatan_NonOperasional,
+CASE WHEN MONTH(periode) = 1 THEN `Beban Pajak`
+	ELSE `Beban Pajak` - LAG(`Beban Pajak`) OVER(ORDER BY periode)
+	END AS Beban_Pajak,
+CASE WHEN MONTH(periode) = 1 THEN `Laba (Rugi) Setelah Pajak`
+	ELSE `Laba (Rugi) Setelah Pajak` - LAG(`Laba (Rugi) Setelah Pajak`) OVER(ORDER BY periode)
+	END AS LabaRugi_Setelah_Pajak,
+CASE WHEN MONTH(periode) = 1 THEN ROA
+	ELSE ROA - LAG(ROA) OVER(ORDER BY periode)
+	END AS ROA,
+CASE WHEN MONTH(periode) = 1 THEN ROE
+	ELSE ROE - LAG(ROE) OVER(ORDER BY periode)
+	END AS ROE,
+TKB90,
+TWP90,
+BOPO
+FROM fact_financial_statement
+;
+
+SELECT * 
+FROM fact_financial_actual
+;
+
+-- Made financial summary 
+SELECT
+	Periode,
+    Jumlah_Aset AS Total_Aset,
+    Kas_SetaraKas / Liabilitas_Jangka_Pendek AS Cash_Ratio,
+    Aset_Lancar / Liabilitas_Jangka_Pendek AS Current_Ratio,
+    Jumlah_Liabilitas / Jumlah_Ekuitas AS DER,
+    LabaRugi_Setelah_Pajak,
+	ROA,
+    ROE,
+    TWP90,
+    BOPO
+FROM financial_actual
+;
