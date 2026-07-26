@@ -1,1 +1,84 @@
+-- Analisis Pinjaman by Umur
+WITH ringkasan_umur AS(
+SELECT 
+	Umur,
+    Periode,
+    SUM(CASE 
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Jumlah Rekening Penerima Pinjaman Aktif (entitas)` END) AS Total_Entitas,
+	SUM(CASE
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Outstanding Pinjaman (miliar Rp)` END) AS Total_Outstanding,
+	SUM(CASE
+		WHEN Matriks = 'Pinjaman Perseorangan Macet  (> 90 hari)' THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) AS Outstanding_Bermasalah,
+	ROUND(SUM(CASE
+		WHEN Matriks = 'Pinjaman Perseorangan Macet  (> 90 hari)' THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) /
+	SUM(CASE
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Outstanding Pinjaman (miliar Rp)` END), 3) AS TWP90
+FROM fact_loan_quality_umur
+GROUP BY Umur, Periode
+ORDER BY FIELD(Umur, '<19 tahun', '19-34 Tahun', '35-54 Tahun', '>54 Tahun'), Periode ASC
+)
+SELECT
+    Umur,
+	MAX(CASE WHEN Periode = '2024-12-01' THEN total_outstanding END) AS Outstanding_Des2024,
+    ROUND(
+        MAX(CASE WHEN Periode = '2024-12-01' THEN total_outstanding END) 
+        / SUM(MAX(CASE WHEN Periode = '2024-12-01' THEN total_outstanding END)) OVER ()
+    , 3) AS Kontribusi_Outstanding,
+    ROUND(AVG(TWP90), 4) AS Avg_TWP90,
+    ROUND(
+        (MAX(CASE WHEN Periode = '2024-12-01' THEN total_outstanding END) 
+         - MAX(CASE WHEN Periode = '2023-12-01' THEN total_outstanding END))
+        / MAX(CASE WHEN Periode = '2023-12-01' THEN total_outstanding END)
+    , 3) AS Growth_Outstanding_YoY,
+    ROUND(
+        (MAX(CASE WHEN Periode = '2024-12-01' THEN total_entitas END) 
+         - MAX(CASE WHEN Periode = '2023-12-01' THEN total_entitas END))
+        / MAX(CASE WHEN Periode = '2023-12-01' THEN total_entitas END)
+    , 3) AS Growth_Entitas_YoY
+FROM ringkasan_umur
+GROUP BY Umur
+ORDER BY Avg_TWP90 DESC
+;
+
+-- Analisis Pinjaman by Gender
+WITH ringkasan_gender AS(
+SELECT 
+	Gender,
+    Periode,
+    SUM(CASE 
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Jumlah Rekening Penerima Pinjaman Aktif (entitas)` END) AS Total_Entitas,
+	SUM(CASE
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Outstanding Pinjaman (miliar Rp)` END) AS Total_Outstanding,
+	SUM(CASE
+		WHEN Matriks = 'Pinjaman Perseorangan Macet  (> 90 hari)' THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) AS Outstanding_Bermasalah,
+	ROUND(SUM(CASE
+		WHEN Matriks = 'Pinjaman Perseorangan Macet  (> 90 hari)' THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) /
+	SUM(CASE
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Outstanding Pinjaman (miliar Rp)` END), 3) AS TWP90
+FROM fact_loan_quality_gender
+GROUP BY Gender, Periode
+ORDER BY Gender, Periode ASC
+)
+SELECT
+    Gender,
+	MAX(CASE WHEN Periode = '2024-12-01' THEN total_outstanding END) AS Outstanding_Des2024,
+    ROUND(
+        MAX(CASE WHEN Periode = '2024-12-01' THEN total_outstanding END) 
+        / SUM(MAX(CASE WHEN Periode = '2024-12-01' THEN total_outstanding END)) OVER ()
+    , 3) AS Kontribusi_Outstanding,
+    ROUND(AVG(TWP90), 4) AS Avg_TWP90,
+    ROUND(
+        (MAX(CASE WHEN Periode = '2024-12-01' THEN total_outstanding END) 
+         - MAX(CASE WHEN Periode = '2023-12-01' THEN total_outstanding END))
+        / MAX(CASE WHEN Periode = '2023-12-01' THEN total_outstanding END)
+    , 3) AS Growth_Outstanding_YoY,
+    ROUND(
+        (MAX(CASE WHEN Periode = '2024-12-01' THEN total_entitas END) 
+         - MAX(CASE WHEN Periode = '2023-12-01' THEN total_entitas END))
+        / MAX(CASE WHEN Periode = '2023-12-01' THEN total_entitas END)
+    , 3) AS Growth_Entitas_YoY
+FROM ringkasan_gender
+GROUP BY Gender
+ORDER BY Avg_TWP90 DESC
+;
 
