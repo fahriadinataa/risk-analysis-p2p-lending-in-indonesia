@@ -97,7 +97,8 @@ Seiring bertambahnya basis lender perorangan, penyelenggara maupun regulator per
 *All recommendations are designed to improve customer retention so the business is less dependent on constantly acquiring new buyers.*
 
 ## 7. Project Structure
-<img width="262" height="336" alt="Screen Shot 2026-04-13 at 16 20 53" src="https://github.com/user-attachments/assets/a56478e4-8435-4136-a180-f4cf3b39beac" />
 
 ## 8. Dashboard Preview
-**Business Health**
+
+## 9. Limitation
+Beberapa keterbatasan data perlu diperhatikan dalam membaca analisis ini: breakdown TWP90 tidak tersedia pada level sektor ekonomi maupun UMKM/Non-UMKM, sehingga analisis pada kedua dimensi tersebut terbatas pada growth dan komposisi. Selain itu, ditemukan anomali pelaporan pada periode Juli hingga September 2024 pada beberapa metrik jumlah entitas, yang kemungkinan besar terkait dengan revisi data resmi OJK untuk periode Juni 2024 sebagaimana tercatat pada catatan kaki dataset. Detail lengkap tersedia pada dokumentasi data quality di repository ini.
