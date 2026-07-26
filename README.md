@@ -1,7 +1,7 @@
 # Risiko yang Tersembunyi di Balik Angka TWP90 2,6% 
 **Membedah Konsentrasi Risiko Kredit pada Industri Fintech P2P Lending (LPBBTI) Indonesia**
 
-**[Click here to download the full Power BI Dashboard](https://drive.google.com/file/d/1FyJgFf3Awvx4gQL-2DZ8jfTRZvM0Lnvw/view?usp=drive_link)**
+**[Click here to download the full Power BI Dashboard](https://drive.google.com/file/d/1P_epljBDFlkhsvix-Jclwbm8-GSpLTvc/view?usp=sharing)**
 
 ## 1. Problem Statement
 
