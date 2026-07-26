@@ -1,4 +1,4 @@
--- buat
+-- Made actual value in net income
 DROP TABLE IF EXISTS financial_actual;
 
 CREATE TABLE fact_financial_actual
@@ -46,7 +46,7 @@ SELECT *
 FROM fact_financial_actual
 ;
 
--- Rangkuman finansial statement 
+-- Made financial summary 
 SELECT
 	Periode,
     Jumlah_Aset AS Total_Aset,
