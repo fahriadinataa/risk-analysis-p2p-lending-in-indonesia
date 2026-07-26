@@ -1,0 +1,164 @@
+CREATE VIEW fact_financial_summary AS 
+SELECT
+	Periode,
+    Jumlah_Aset AS Total_Aset,
+    Kas_SetaraKas / Liabilitas_Jangka_Pendek AS Cash_Ratio,
+    Aset_Lancar / Liabilitas_Jangka_Pendek AS Current_Ratio,
+    Jumlah_Liabilitas / Jumlah_Ekuitas AS DER,
+    LabaRugi_Setelah_Pajak,
+	ROA,
+    ROE,
+    TWP90,
+    BOPO
+FROM fact_financial_actual
+;
+
+CREATE VIEW fact_growth_risk_location AS
+WITH ringkasan AS(
+SELECT 
+	Provinsi,
+	ROUND(AVG(Growth_Pinjaman_MOM), 3) AS Avg_Growth_Pinjaman,
+    ROUND(AVG(TWP90), 3) AS Avg_TWP90
+FROM fact_growth_risk_loc
+GROUP BY Provinsi
+)
+SELECT 
+    Provinsi,
+    Avg_Growth_Pinjaman,
+    ROUND(AVG(Avg_Growth_Pinjaman) OVER (), 2) AS Threshold_Growth,
+    Avg_TWP90,
+    ROUND(AVG(Avg_TWP90) OVER (), 2) AS Threshold_TWP90,
+    CASE
+        WHEN avg_growth_pinjaman > AVG(avg_growth_pinjaman) OVER () 
+             AND avg_TWP90 <= AVG(avg_TWP90) OVER () THEN 'High Growth Low Risk'
+        WHEN avg_growth_pinjaman > AVG(avg_growth_pinjaman) OVER () 
+             AND avg_TWP90 > AVG(avg_TWP90) OVER () THEN 'High Growth High Risk'
+        WHEN avg_growth_pinjaman <= AVG(avg_growth_pinjaman) OVER () 
+             AND avg_TWP90 > AVG(avg_TWP90) OVER () THEN 'Low Growth High Risk'
+        ELSE 'Low Growth Low Risk'
+    END AS Kuadran
+FROM ringkasan
+;
+
+CREATE VIEW fact_growth_bysector AS
+SELECT
+	Sektor,
+	Periode,
+    Value,
+    ROUND((Value - LAG(Value) OVER (PARTITION BY Sektor ORDER BY Periode)) /
+		LAG(Value) OVER (PARTITION BY Sektor ORDER BY Periode), 2) AS Growth_MoM,
+	ROUND((Value - LAG(Value, 12) OVER (PARTITION BY Sektor ORDER BY Periode)) /
+		LAG(Value, 12) OVER (PARTITION BY Sektor ORDER BY Periode), 2) AS Growth_YoY
+FROM fact_loan_disbursement_sec
+;
+
+CREATE VIEW fact_loan_bycategory AS
+SELECT
+    Kategori,
+    Periode,
+    SUM(CASE WHEN Matriks = 'Total Outstanding Pinjaman' THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) AS Total_Outstanding,
+    SUM(CASE WHEN Matriks IN ('Pinjaman Macet  (> 90 hari)') THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) AS Outstanding_Bermasalah,
+    ROUND(SUM(CASE WHEN Matriks IN ('Pinjaman Macet  (> 90 hari)') THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END)
+        / SUM(CASE WHEN Matriks = 'Total Outstanding Pinjaman' THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END)
+    , 4) AS TWP90
+FROM fact_loan_quality_category
+GROUP BY Kategori, Periode
+ORDER BY Periode
+;
+
+CREATE VIEW fact_growth_risk_category AS
+WITH data_bulanan AS (
+    SELECT 
+		Kategori, 
+        Periode, 
+        SUM(CASE WHEN Matriks = 'Total Outstanding Pinjaman' THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) AS Total_Outstanding, 
+        SUM(CASE WHEN Matriks IN ('Pinjaman Macet  (> 90 hari)') THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) AS Outstanding_Bermasalah
+    FROM fact_loan_quality_category
+    GROUP BY Kategori, Periode
+),
+growth AS (
+    SELECT Kategori, Periode, Total_Outstanding,
+        ROUND(Outstanding_Bermasalah / Total_Outstanding, 4) AS TWP90,
+        ROUND(
+            (Total_Outstanding - LAG(Total_Outstanding) OVER (PARTITION BY Kategori ORDER BY Periode))
+            / LAG(Total_Outstanding) OVER (PARTITION BY Kategori ORDER BY Periode)
+        , 3) AS Growth_Outstanding_MoM
+    FROM data_bulanan
+),
+ringkasan AS (
+    SELECT Kategori,
+        ROUND(AVG(Growth_Outstanding_MoM), 3) AS Avg_Growth_Outstanding,
+        ROUND(AVG(TWP90), 4) AS Avg_TWP90
+    FROM growth
+    GROUP BY Kategori
+)
+SELECT
+    Kategori, Avg_Growth_Outstanding,
+    ROUND(AVG(Avg_Growth_Outstanding) OVER (), 3) AS Threshold_Growth,
+    Avg_TWP90,
+    ROUND(AVG(Avg_TWP90) OVER (), 4) AS Threshold_TWP90,
+    CASE
+        WHEN Avg_Growth_Outstanding > AVG(Avg_Growth_Outstanding) OVER () AND Avg_TWP90 <= AVG(Avg_TWP90) OVER () THEN 'High Growth Low Risk'
+        WHEN Avg_Growth_Outstanding > AVG(Avg_Growth_Outstanding) OVER () AND Avg_TWP90 > AVG(Avg_TWP90) OVER () THEN 'High Growth High Risk'
+        WHEN Avg_Growth_Outstanding <= AVG(Avg_Growth_Outstanding) OVER () AND Avg_TWP90 > AVG(Avg_TWP90) OVER () THEN 'Low Growth High Risk'
+        ELSE 'Low Growth Low Risk'
+    END AS Kuadran
+FROM ringkasan;
+
+CREATE VIEW fact_loan_byage AS
+WITH ringkasan_umur AS(
+SELECT 
+	Umur,
+    Periode,
+    SUM(CASE 
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Jumlah Rekening Penerima Pinjaman Aktif (entitas)` END) AS Total_Entitas,
+	SUM(CASE
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Outstanding Pinjaman (miliar Rp)` END) AS Total_Outstanding,
+	SUM(CASE
+		WHEN Matriks = 'Pinjaman Perseorangan Macet  (> 90 hari)' THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) AS Outstanding_Bermasalah,
+	ROUND(SUM(CASE
+		WHEN Matriks = 'Pinjaman Perseorangan Macet  (> 90 hari)' THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) /
+	SUM(CASE
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Outstanding Pinjaman (miliar Rp)` END), 3) AS TWP90
+FROM fact_loan_quality_umur
+GROUP BY Umur, Periode
+ORDER BY FIELD(Umur, '<19 tahun', '19-34 Tahun', '35-54 Tahun', '>54 Tahun'), Periode ASC
+)
+SELECT *
+FROM ringkasan_umur
+;
+
+CREATE VIEW fact_loan_bygender AS
+WITH ringkasan_gender AS(
+SELECT 
+	Gender,
+    Periode,
+    SUM(CASE 
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Jumlah Rekening Penerima Pinjaman Aktif (entitas)` END) AS Total_Entitas,
+	SUM(CASE
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Outstanding Pinjaman (miliar Rp)` END) AS Total_Outstanding,
+	SUM(CASE
+		WHEN Matriks = 'Pinjaman Perseorangan Macet  (> 90 hari)' THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) AS Outstanding_Bermasalah,
+	ROUND(SUM(CASE
+		WHEN Matriks = 'Pinjaman Perseorangan Macet  (> 90 hari)' THEN `Outstanding Pinjaman (miliar Rp)` ELSE 0 END) /
+	SUM(CASE
+		WHEN Matriks = 'Total Outstanding Pinjaman Perseorangan' THEN `Outstanding Pinjaman (miliar Rp)` END), 3) AS TWP90
+FROM fact_loan_quality_gender
+GROUP BY Gender, Periode
+ORDER BY Gender, Periode ASC
+)
+SELECT *
+FROM ringkasan_gender
+;
+
+CREATE VIEW fact_lender_category AS
+SELECT
+    Region,
+    Kategori,
+    Sub_Kategori,
+    Periode,
+    `Jumlah Rekening Pemberi Pinjaman (entitas)` AS Total_Rekening,
+    `Outstanding Pinjaman (miliar Rp)` AS Total_Outstanding
+FROM fact_lender_outstanding
+ORDER BY Region, Periode
+;
